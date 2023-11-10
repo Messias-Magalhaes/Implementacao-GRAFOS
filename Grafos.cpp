@@ -1,66 +1,74 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <limits.h>
+
 #define true 1
 #define false 0
+
 typedef int bool;
 typedef int TIPOPESO;
 
 typedef struct adjacencia {
-	int vertice;
-	TIPOPESO peso;
-	struct adjacencia *prox;
-}ADJACENCIA;
+    int vertice;
+    TIPOPESO peso;
+    struct adjacencia *prox;
+} ADJACENCIA;
 
 typedef struct vertice {
-	ADJACENCIA *cab;
-}VERTICE;
+    ADJACENCIA *cab;
+} VERTICE;
 
 typedef struct grafo {
-	int vertices;
-	int arestas;
-	VERTICE *adj;
-}GRAFO;
+    int vertices;
+    int arestas;
+    VERTICE *adj;
+} GRAFO;
 
-GRAFO *criaGrafo (int v) {
-	int i;
-	
-	GRAFO *g = (GRAFO*)malloc(sizeof(GRAFO));
-	g->vertices = v;
-	g->arestas = 0;
-	g->adj = (VERTICE *)malloc(v * sizeof(VERTICE));
+typedef struct fila {
+    int *itens;
+    int frente, fundo;
+} FILA;
 
-	for (i=0; i<v; i++){
-		g->adj[i].cab=NULL;
-	}
-	return(g);
+GRAFO *criaGrafo(int v) {
+    int i;
+
+    GRAFO *g = (GRAFO *)malloc(sizeof(GRAFO));
+    g->vertices = v;
+    g->arestas = 0;
+    g->adj = (VERTICE *)malloc(v * sizeof(VERTICE));
+
+    for (i = 0; i < v; i++) {
+        g->adj[i].cab = NULL;
+    }
+    return (g);
 }
 
-ADJACENCIA *criaAdj (int v, int peso){
-	ADJACENCIA *temp = (ADJACENCIA*)malloc(sizeof(ADJACENCIA));
-	temp->vertice = v;
-	temp->peso = peso;
-	temp->prox = NULL;
-	return(temp);
+ADJACENCIA *criaAdj(int v, int peso) {
+    ADJACENCIA *temp = (ADJACENCIA *)malloc(sizeof(ADJACENCIA));
+    temp->vertice = v;
+    temp->peso = peso;
+    temp->prox = NULL;
+    return (temp);
 }
 
 bool criaAresta(GRAFO *gr, int vi, int vf, TIPOPESO p) {
-	if(!gr) {
-		return (false);
-	}
-	if((vf < 0)||(vf >= gr->vertices)){
-		return (false);
-	}
-	if((vi < 0)||(vf >= gr->vertices)){
-		return (false);
-	}
-	
-	ADJACENCIA *novo = criaAdj(vf, p);
-	
-	novo->prox = gr->adj[vi].cab;
-	gr->adj[vi].cab = novo;
-	gr->arestas++;
-	return (true);
+    if (!gr) {
+        return (false);
+    }
+    if ((vf < 0) || (vf >= gr->vertices)) {
+        return (false);
+    }
+    if ((vi < 0) || (vf >= gr->vertices)) {
+        return (false);
+    }
+
+    ADJACENCIA *novo = criaAdj(vf, p);
+
+    novo->prox = gr->adj[vi].cab;
+    gr->adj[vi].cab = novo;
+    gr->arestas++;
+    return (true);
 }
 
 bool criaArestaND(GRAFO *gr, int vi, int vf, TIPOPESO p) {
@@ -78,7 +86,7 @@ bool criaArestaND(GRAFO *gr, int vi, int vf, TIPOPESO p) {
     novo->prox = gr->adj[vi].cab;
     gr->adj[vi].cab = novo;
 
-    // Para um grafo não direcionado, adicione a aresta no sentido contrário também
+    // Para um grafo nÃ£o direcionado, adicione a aresta no sentido contrÃ¡rio tambÃ©m
     ADJACENCIA *novo_inverso = criaAdj(vi, p);
     novo_inverso->prox = gr->adj[vf].cab;
     gr->adj[vf].cab = novo_inverso;
@@ -109,7 +117,7 @@ void imprimeMatrizAdjacencia(GRAFO *gr) {
         printf("\n");
     }
 }
-    
+
 void imprimeListaAdjacencia(GRAFO *gr) {
     int i;
     printf("\nLista de Adjacencia:\n");
@@ -124,90 +132,155 @@ void imprimeListaAdjacencia(GRAFO *gr) {
     }
 }
 
-TIPOPESO calculaValorCaminho(GRAFO *gr, int origem, int destino) {
-    int *distancia = (int *)malloc(gr->vertices * sizeof(int));
+bool filaVazia(FILA *fila) {
+    return (fila->frente == -1);
+}
+
+void enfileirar(FILA *fila, int item) {
+    if (fila->fundo == -1) {
+        fila->frente = 0;
+    }
+    fila->fundo++;
+    fila->itens[fila->fundo] = item;
+}
+
+int desenfileirar(FILA *fila) {
+    int item = fila->itens[fila->frente];
+    fila->frente++;
+    if (fila->frente > fila->fundo) {
+        fila->frente = fila->fundo = -1;
+    }
+    return item;
+}
+
+void buscaLargura(GRAFO *gr, int inicio) {
+    FILA *fila = (FILA *)malloc(sizeof(FILA));
+    fila->itens = (int *)malloc(gr->vertices * sizeof(int));
+    fila->frente = -1;
+    fila->fundo = -1;
+
     bool *visitado = (bool *)malloc(gr->vertices * sizeof(bool));
 
     for (int i = 0; i < gr->vertices; i++) {
-        distancia[i] = INT_MAX;
         visitado[i] = false;
     }
 
-    distancia[origem] = 0;
+    visitado[inicio] = true;
+    enfileirar(fila, inicio);
 
-    for (int count = 0; count < gr->vertices - 1; count++) {
-        int u = -1;
-        int min_distancia = INT_MAX;
+    printf("\nBusca em Largura a partir do vertice %d: ", inicio);
 
-        for (int i = 0; i < gr->vertices; i++) {
-            if (!visitado[i] && distancia[i] < min_distancia) {
-                u = i;
-                min_distancia = distancia[i];
+    while (!filaVazia(fila)) {
+        int vertice = desenfileirar(fila);
+        printf("%d ", vertice);
+
+        ADJACENCIA *ad = gr->adj[vertice].cab;
+        while (ad) {
+            int adjacente = ad->vertice;
+            if (!visitado[adjacente]) {
+                visitado[adjacente] = true;
+                enfileirar(fila, adjacente);
             }
-        }
-
-        if (u == -1) {
-            break;
-        }
-
-        visitado[u] = true;
-        ADJACENCIA *v = gr->adj[u].cab;
-
-        while (v) {
-            if (!visitado[v->vertice] && distancia[u] != INT_MAX && distancia[u] + v->peso < distancia[v->vertice]) {
-                distancia[v->vertice] = distancia[u] + v->peso;
-            }
-            v = v->prox;
+            ad = ad->prox;
         }
     }
 
-    int resultado = distancia[destino];
-
-    free(distancia);
+    free(fila->itens);
+    free(fila);
     free(visitado);
+    printf("\n");
+}
 
-    if (resultado == INT_MAX) {
-        return -1;
-    } else {
-        return resultado;
+void imprimeVetor(int *vetor, int tamanho, char *mensagem) {
+    printf("%s", mensagem);
+    for (int i = 0; i < tamanho; i++) {
+        printf(" %d", vetor[i]);
     }
+    printf("\n");
+}
+
+void dfs(GRAFO *gr, int inicio, int *visitado, int *sequencia, int *ordemVisitados, int *contador, int *seqCount) {
+    visitado[inicio] = 1;
+    ordemVisitados[*contador] = inicio;
+    (*contador)++;
+
+    ADJACENCIA *ad = gr->adj[inicio].cab;
+    while (ad) {
+        if (!visitado[ad->vertice]) {
+            dfs(gr, ad->vertice, visitado, sequencia, ordemVisitados, contador, seqCount);
+        }
+        ad = ad->prox;
+    }
+    sequencia[*seqCount] = inicio;
+    (*seqCount)++;
+}
+
+void buscaEmProfundidade(GRAFO *gr, int inicio) {
+    int *visitado = (int *)malloc(gr->vertices * sizeof(int));
+    int *sequencia = (int *)malloc(gr->vertices * sizeof(int));
+    int *ordemVisitados = (int *)malloc(gr->vertices * sizeof(int));
+    int contador = 0;
+    int seqCount = 0;
+
+    for (int i = 0; i < gr->vertices; i++) {
+        visitado[i] = 0;
+    }
+
+    dfs(gr, inicio, visitado, sequencia, ordemVisitados, &contador, &seqCount);
+    
+    printf("\nBusca em largura a partir do indice %d: \n", inicio);
+
+    imprimeVetor(ordemVisitados, contador, "\nOrdem de visitacaoo dos vertices:");
+    imprimeVetor(sequencia, seqCount, "\nVetor de sequencia:");
+
+    free(visitado);
+    free(sequencia);
+    free(ordemVisitados);
 }
 
 int main() {
-    GRAFO *grafo = criaGrafo(5);
-    GRAFO *grafo1 = criaGrafo(5);
+    GRAFO *grafo = criaGrafo(15);
 
-    criaArestaND(grafo, 0, 0, 0);
-    criaArestaND(grafo, 0, 2, 0);
-    criaArestaND(grafo, 2, 1, 0);
-    criaArestaND(grafo, 2, 3, 0);
-    criaArestaND(grafo, 1, 3, 0);
-    criaArestaND(grafo, 1, 4, 0);
-    criaArestaND(grafo, 3, 4, 0);
-    
-    imprimeMatrizAdjacencia(grafo);
-    imprimeListaAdjacencia(grafo);
-    
-    criaAresta(grafo1, 0, 0, 1);
-    criaAresta(grafo1, 0, 2, 2);
-    criaAresta(grafo1, 2, 1, 3);
-    criaAresta(grafo1, 2, 3, 4);
-    criaAresta(grafo1, 1, 3, 5);
-    criaAresta(grafo1, 1, 4, 6);
-    criaAresta(grafo1, 3, 4, 7);
+	printf("============================EXERCICIO 1============================\n");
+	
+    criaAresta(grafo, 0, 1, 0);
+    criaAresta(grafo, 0, 2, 0);
+    criaAresta(grafo, 1, 3, 0);
+    criaAresta(grafo, 1, 4, 0);
+    criaAresta(grafo, 1, 5, 0);
+    criaAresta(grafo, 3, 6, 0);
+    criaAresta(grafo, 3, 7, 0);
+    criaAresta(grafo, 5, 8, 0);
+    criaAresta(grafo, 5, 9, 0);
+    criaAresta(grafo, 7, 10, 0);
+    criaAresta(grafo, 7, 11, 0);
+    criaAresta(grafo, 7, 12, 0);
+    criaAresta(grafo, 9, 13, 0);
+    criaAresta(grafo, 9, 14, 0);
 
-    imprimeMatrizAdjacencia(grafo1);
-    imprimeListaAdjacencia(grafo1);
+    int inicioBL = 1;
+    buscaLargura(grafo, inicioBL);
     
-    int origem = 0;
-    int destino = 4;
-    TIPOPESO valorTotal = calculaValorCaminho(grafo1, origem, destino);
+    GRAFO *grafo1 = criaGrafo(10);
+    
+    printf("\n\n============================EXERCICIO 2============================\n");
 
-    if (valorTotal >= 0) {
-        printf("\nValor total do caminho de {%d, %d} = %d\n", origem, destino, valorTotal);
-    } else {
-        printf("\nCaminho invalido ou nao encontrado.\n");
-    }
+    criaAresta(grafo1, 0, 1, 0);
+    criaAresta(grafo1, 1, 2, 0);
+    criaAresta(grafo1, 1, 4, 0);
+    criaAresta(grafo1, 2, 3, 0);
+    criaAresta(grafo1, 2, 4, 0);
+    criaAresta(grafo1, 2, 9, 0);
+    criaAresta(grafo1, 3, 4, 0);
+    criaAresta(grafo1, 4, 5, 0);
+    criaAresta(grafo1, 4, 6, 0);
+    criaAresta(grafo1, 4, 7, 0);
+    criaAresta(grafo1, 5, 6, 0);
+    criaAresta(grafo1, 7, 8, 0);
+    criaAresta(grafo1, 7, 9, 0);
+
+    int inicioDFS = 0;
+    buscaEmProfundidade(grafo1, inicioDFS);
 
     return 0;
 }
