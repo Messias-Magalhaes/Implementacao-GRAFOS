@@ -6,6 +6,8 @@
 #define true 1
 #define false 0
 
+#define V 6
+
 typedef int bool;
 typedef int TIPOPESO;
 
@@ -238,49 +240,57 @@ void buscaEmProfundidade(GRAFO *gr, int inicio) {
     free(ordemVisitados);
 }
 
+int minDistance(int dist[], bool sptSet[]) {
+    int min = INT_MAX, min_index;
+
+    for (int v = 0; v < V; v++)
+        if (sptSet[v] == false && dist[v] <= min)
+            min = dist[v], min_index = v;
+
+    return min_index;
+}
+
+void printSolution(int dist[]) {
+    printf("Vertice \t Distancia do Vertice Inicial\n");
+    for (int i = 0; i < V; i++)
+        printf("%d \t\t %d\n", i, dist[i]);
+}
+
+void dijkstra(int graph[V][V], int src) {
+    int dist[V];
+
+    bool sptSet[V];
+
+    for (int i = 0; i < V; i++) {
+        dist[i] = INT_MAX;
+        sptSet[i] = false;
+    }
+
+    dist[src] = 0;
+
+    for (int count = 0; count < V - 1; count++) {
+        int u = minDistance(dist, sptSet);
+
+        sptSet[u] = true;
+
+        for (int v = 0; v < V; v++)
+            if (!sptSet[v] && graph[u][v] && dist[u] != INT_MAX && dist[u] + graph[u][v] < dist[v])
+                dist[v] = dist[u] + graph[u][v];
+    }
+
+    printSolution(dist);
+}
+
 int main() {
-    GRAFO *grafo = criaGrafo(15);
 
-	printf("============================EXERCICIO 1============================\n");
-	
-    criaAresta(grafo, 0, 1, 0);
-    criaAresta(grafo, 0, 2, 0);
-    criaAresta(grafo, 1, 3, 0);
-    criaAresta(grafo, 1, 4, 0);
-    criaAresta(grafo, 1, 5, 0);
-    criaAresta(grafo, 3, 6, 0);
-    criaAresta(grafo, 3, 7, 0);
-    criaAresta(grafo, 5, 8, 0);
-    criaAresta(grafo, 5, 9, 0);
-    criaAresta(grafo, 7, 10, 0);
-    criaAresta(grafo, 7, 11, 0);
-    criaAresta(grafo, 7, 12, 0);
-    criaAresta(grafo, 9, 13, 0);
-    criaAresta(grafo, 9, 14, 0);
+    int graph[V][V] = {{0, 1, 4, 0, 0, 0},
+                       {1, 0, 4, 2, 7, 0},
+                       {4, 4, 0, 3, 5, 0},
+                       {0, 2, 3, 0, 4, 6},
+                       {0, 7, 5, 4, 0, 7},
+                       {0, 0, 0, 6, 7, 0}};
 
-    int inicioBL = 1;
-    buscaLargura(grafo, inicioBL);
-    
-    GRAFO *grafo1 = criaGrafo(10);
-    
-    printf("\n\n============================EXERCICIO 2============================\n");
-
-    criaAresta(grafo1, 0, 1, 0);
-    criaAresta(grafo1, 1, 2, 0);
-    criaAresta(grafo1, 1, 4, 0);
-    criaAresta(grafo1, 2, 3, 0);
-    criaAresta(grafo1, 2, 4, 0);
-    criaAresta(grafo1, 2, 9, 0);
-    criaAresta(grafo1, 3, 4, 0);
-    criaAresta(grafo1, 4, 5, 0);
-    criaAresta(grafo1, 4, 6, 0);
-    criaAresta(grafo1, 4, 7, 0);
-    criaAresta(grafo1, 5, 6, 0);
-    criaAresta(grafo1, 7, 8, 0);
-    criaAresta(grafo1, 7, 9, 0);
-
-    int inicioDFS = 0;
-    buscaEmProfundidade(grafo1, inicioDFS);
+    dijkstra(graph, 0);
 
     return 0;
 }
